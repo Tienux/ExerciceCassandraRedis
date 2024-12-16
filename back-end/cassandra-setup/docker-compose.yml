@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  cassandra:
+    build:
+      context: .
+      dockerfile: Dockerfile  # Utilise le Dockerfile pour construire l'image
+    container_name: cassandra-container
+    environment:
+      - CASSANDRA_CLUSTER_NAME=CassandraCluster
+      - CASSANDRA_DC=DC1
+      - CASSANDRA_RACK=Rack1
+    ports:
+      - "9042:9042"  # Port pour CQLSH et clients Cassandra
+    networks:
+      - app_network
+
+  redis:
+    image: redis:latest  # Utilise l'image officielle Redis
+    container_name: redis-container
+    ports:
+      - "6379:6379"  # Port standard pour Redis
+    networks:
+      - app_network
+    volumes:
+      - redis-data:/data  # Persiste les données Redis
+    command: ["redis-server"]
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local
