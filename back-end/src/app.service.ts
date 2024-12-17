@@ -20,80 +20,59 @@ export class AppService {
     this.redisClient.connect();
   }
 
-  // Méthodes Cassandra
+  // Méthodes Cassandra de base
   async getHello(): Promise<string> {
     return 'Hello World!';
   }
 
+  // Voici un exemple de méthode pour récupérer tous les produits
   async getAllProducts(): Promise<any> {
     const query = 'SELECT * FROM products LIMIT 50';
     const result = await this.cassandraClient.execute(query);
     return result.rows;
   }
 
+  // Voici un exemple de méthode pour récupérer un produit par son ID
+  // le prepare: true est nécessaire pour les requêtes paramétrées
   async getProduct(productId: string): Promise<any> {
     const query = 'SELECT * FROM products WHERE id = ?';
     const result = await this.cassandraClient.execute(query, [productId], { prepare: true });
-    return result.rows[0];
-  }
-  
-
-  async getAllCategories(): Promise<any> {
-    const query = 'SELECT * FROM categories';
-    const result = await this.cassandraClient.execute(query);
     return result.rows;
   }
+  
+  //Completer le code pour retourner toutes les catégories
+  async getAllCategories(): Promise<any> {
+    return 'Affichage catégorie';
+  }
 
+  //Completer le code pour retourner une catégorie par son ID
+  //Il manque peut etre un paramètre
+  //Attention a modifier dans le app.controller.ts
+  async getCategory(): Promise<any> {
+    return "Affiche catégorie";
+  }
+
+
+  //Compléter le code pour retourner tous les utilisateurs
   async getAllUsers(): Promise<any[]> {
-    const query = 'SELECT id, name, password FROM users';
-    const result = await this.cassandraClient.execute(query);
-    const users = result.rows;
-  
-    return await Promise.all(
-      users.map(async (user) => {
-        const cart = await this.redisClient.hGetAll(`cart:${user.id}`);
-        return {
-          id: user.id,
-          name: user.name,
-          password: user.password,
-          cart: Object.keys(cart).length > 0 ? cart : {},
-        };
-      }),
-    );
+    //TODO: Retourner tous les utilisateurs
+    return ['Affiche tout les utilisateurs'];
   }
   
-  async getUser(userId: string): Promise<any> {
-    const userQuery = 'SELECT id, name, password FROM users WHERE id = ?';
-    const userResult = await this.cassandraClient.execute(userQuery, [userId]);
-  
-    if (userResult.rowLength === 0) {
-      throw new Error(`User with ID ${userId} not found`);
-    }
-  
-    const user = userResult.rows[0];
-    const cart = await this.redisClient.hGetAll(`cart:${user.id}`);
-  
-    return {
-      id: user.id,
-      name: user.name,
-      password: user.password,
-      cart: Object.keys(cart).length > 0 ? cart : {},
-    };
+  //Compléter le code pour retourner un utilisateur par son ID
+  //N'oubliez pas le app.controller.ts
+  async getUser(): Promise<any> {
+    return 'Affiche user';
   }
   
-
-  async createUser(name: string, password: string): Promise<any> {
-    const usersQuery = 'SELECT MAX(id) AS maxId FROM users';
-    const usersResult = await this.cassandraClient.execute(usersQuery);
-    const maxId = parseInt(usersResult.rows[0]?.maxid || '0', 10); 
-    const userId = (maxId + 1).toString();
-    const query = 'INSERT INTO users (id, name, password) VALUES (?, ?, ?)';
-    await this.cassandraClient.execute(query, [userId, name, password], { prepare: true });
-  
-    return { id: userId, name };
+  //Compléter le code pour créer un utilisateur
+  // Vous aurez besoins de deux paramètres
+  //Attention aux id deja existante.
+  async createUser(): Promise<any> {
+    return 'Création utilisateur';
   }
   
-
+  //Voici l'exemple du delte. Observez bien comment le panier est supprimé
   async deleteUser(userId: string): Promise<any> {
     const userQuery = 'SELECT id, idpanier FROM users WHERE id = ?';
     const userResult = await this.cassandraClient.execute(userQuery, [userId]);
@@ -111,61 +90,44 @@ export class AppService {
     return { message: `user ${userId} deleted` };
   }
 
+
+  //Compléter le code pour authentifier un utilisateur
+  //Renvoyez null si l'utilisateur n'existe pas ou que le mot de passe est incorrect
+  //Renvoyez le user.id et user.name si l'authentification réussie
   async authenticateUser(username: string, password: string): Promise<any> {
-    // Vérifier l'existence de l'utilisateur dans la base de données
-    const query = 'SELECT id, name, password FROM users WHERE name = ? ALLOW FILTERING';
-    const result = await this.cassandraClient.execute(query, [username]);
-
-    if (result.rowLength === 0) {
-      return null; // Utilisateur non trouvé
-    }
-
-    const user = result.rows[0];
-
-    // Vérifier le mot de passe (assurez-vous de gérer cela correctement avec le hachage en vrai)
-    if (user.password !== password) {
-      return null; // Mot de passe incorrect
-    }
-
+    //TODO Logique d'authentification
     // Retourner les informations de l'utilisateur si l'authentification réussie
-    return { id: user.id, name: user.name };
+    return {id:"a completer", name:"a completer"};
   }
 
 
-  //panier
+  //Passons à la partie REDIS
+  //Voici un exemple de méthode pour ajouter un produit au panier d'un utilisateur
   async setProductToCart(userId: string, productId: string, quantity: number): Promise<any> {
     const cartKey = `cart:${userId}`;
     await this.redisClient.hSet(cartKey, productId, quantity);
   }
 
-  async removeProductFromCart(userId: string, productId: string): Promise<any> {
-    const cartKey = `cart:${userId}`;
-    await this.redisClient.hDel(cartKey, productId);
+  //Completer le code pour retirer un produit du panier d'un utilisateur
+  //Vous avez besoins de deux paramètres
+  //Pensez au app.controller.ts
+  async removeProductFromCart(): Promise<any> {
+    //TODO: Retirer un produit du panier
   }
 
 
-  async getCart(userId: string): Promise<{ productId: string; quantity: number }[]> {
-  const cartKey = `cart:${userId}`;
-  const cart = await this.redisClient.hGetAll(cartKey);
-
-  // Convertir les valeurs en entiers pour les quantités
-  const cartItems = Object.entries(cart).map(([productId, quantity]) => ({
-    productId,
-    quantity: parseInt(quantity as string, 10),
-  }));
-
-  return cartItems.length > 0 ? cartItems : [];
-}
-
-
-  async clearCart(userId: string): Promise<any> {
-    const cartKey = `cart:${userId}`;
-    await this.redisClient.del(cartKey);
-  
-    return { message: `Cart cleared for user ${userId}` };
+  //Completer le code pour retourner le panier d'un utilisateur
+  async getCart(userId: string): Promise<any[]> {
+  return [ "Affiche panier "];
   }
-  
 
+  //Completer le code pour supprimer le panier d'un utilisateur
+  //Besoins d'un paramètre
+  async clearCart(): Promise<any> {
+    //TODO Supprimer le panier de l'utilisateur
+    return "Panier supprimé";
+  }
+  //Une fois ces méthodes faites, retourner sur la fiche TD pour la suite
   
 
 }

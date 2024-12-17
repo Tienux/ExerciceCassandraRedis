@@ -29,6 +29,11 @@ export class AppController {
   async getAllCategories(): Promise<any> {
     return this.appService.getAllCategories();
   }
+  
+  @Get('api/categories/:id')
+  async getCategories(@Param('id') id: string): Promise<any> {
+    return this.appService.getCategory();
+  }
 
   @Get('api/users')
   async getAllUsers(): Promise<any> {
@@ -37,14 +42,14 @@ export class AppController {
 
   @Get('api/users/:urlname')
   async getUser(@Param('urlname') urlname: string): Promise<any> {
-    return this.appService.getUser(urlname);
+    return this.appService.getUser();
   }
 
   @Post('api/register')
   async createUser(@Body() body: { username: string; password: string }): Promise<any> {
     const { username, password } = body;
     const name = username;
-    const user = await this.appService.createUser(name, password);
+    const user = await this.appService.createUser();
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -98,7 +103,7 @@ export class AppController {
     @Body() body: { productId: string }
   ): Promise<any> {
     const { productId } = body;
-    return this.appService.removeProductFromCart(userId, productId);
+    return this.appService.removeProductFromCart();
   }
 
   // Nouvelle méthode pour récupérer le panier d'un utilisateur
@@ -110,6 +115,6 @@ export class AppController {
   // Nouvelle méthode pour vider le panier d'un utilisateur
   @Delete('api/users/:userId/cart/clear')
   async clearCart(@Param('userId') userId: string): Promise<any> {
-    return this.appService.clearCart(userId);
+    return this.appService.clearCart();
   }
 }
